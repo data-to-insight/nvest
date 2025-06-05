@@ -46,11 +46,9 @@ column_map = {
 }
 
 
-uploaded_contacts = st.file_uploader("Upload D2I web signup contacts CSV (PATH:#NVEST#Contacts#contacts_web_signup#file-with-most-recent-date.csv)", type=["csv"], key="contacts_file")
-uploaded_external = st.file_uploader("Upload other external contacts CSV (PATH:#NVEST#Contacts#contacts_other_external.csv)", type=["csv"], key="external_file")
-uploaded_events = st.file_uploader("Upload ALL event CSVs (PATH:#NVEST#Contacts#events#*.csv)", accept_multiple_files=True, type=["csv"], key="multi_attendance")
-
-
+uploaded_contacts = st.file_uploader("Upload D2I web signup contacts CSV (PATH: NVEST/Contacts/1-contacts_web_signup/file-with-most-recent-date.csv)", type=["csv"], key="contacts_file")
+uploaded_external = st.file_uploader("Upload other external contacts CSV (PATH: NVEST/Contacts/2-contacts_other_sources/contacts_other_external.csv)", type=["csv"], key="external_file")
+uploaded_events = st.file_uploader("Upload ALL event CSVs (PATH: NVEST/Contacts/3-events/*.csv)", accept_multiple_files=True, type=["csv"], key="multi_attendance")
 
 
 
@@ -194,7 +192,7 @@ if all_contacts is not None:
 if all_contacts is not None:
     csv_data = all_contacts.to_csv(index=False).encode("utf-8")
     st.download_button(
-        label="Download Contacts CSV",
+        label="Download Contacts - save to : NVEST/Contacts/4 - contacts_processed/",
         data=csv_data,
         file_name=f"nvest_contacts_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
         mime="text/csv",
