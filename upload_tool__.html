@@ -45,11 +45,10 @@ column_map = {
     "Tech support lead email": "support_email"
 }
 
-uploaded_contacts = st.file_uploader("Upload D2I web signup contacts CSV (\NVEST\Contacts\contacts_web_signup\<file with most recent date>.csv)", type=["csv"], key="contacts_file")
-uploaded_external = st.file_uploader("Upload other external contacts CSV (\NVEST\Contacts\contacts_other_external.csv)", type=["csv"], key="external_file")
-uploaded_events = st.file_uploader("Upload ALL event CSVs (\NVEST\Contacts\events\*)", accept_multiple_files=True, type=["csv"], key="multi_attendance")
+uploaded_contacts = st.file_uploader("Upload D2I web signup contacts CSV", type=["csv"], key="contacts_file")
+uploaded_external = st.file_uploader("Upload other external contacts CSV", type=["csv"], key="external_file")
 
-# d2i web|nvest sign ups data (internal)
+# Process contacts_wix_internal
 if uploaded_contacts is not None:
     try:
         contacts_wix_internal = pd.read_csv(uploaded_contacts)
@@ -58,13 +57,20 @@ if uploaded_contacts is not None:
         contacts_wix_internal.rename(columns=column_map, inplace=True)
 
         if "email" in contacts_wix_internal.columns:
-            contacts_wix_internal["email"] = contacts_wix_internal["email"].astype(str).str.strip()
-            contacts_wix_internal["domain"] = contacts_wix_internal["email"].str.extract(r"@(.+)$")[0]
+            contacts_wix_internal["domain"] = (
+                contacts_wix_internal["email"]
+                .astype(str)
+                .str.strip()
+                .str.replace(r"\\s+", "", regex=True)
+                .str.extract(r"@(.+)$")[0]
+            )
         else:
             contacts_wix_internal["domain"] = pd.NA
 
-        contacts_wix_internal["steering_grp"] = "N"
-        contacts_wix_internal["source"] = "Web"
+        if "steering_grp" not in contacts_wix_internal.columns:
+            contacts_wix_internal["steering_grp"] = "N"
+        if "source" not in contacts_wix_internal.columns:
+            contacts_wix_internal["source"] = "Web"
 
         if "submission_date" in contacts_wix_internal.columns:
             contacts_wix_internal["submission_date"] = pd.to_datetime(contacts_wix_internal["submission_date"], errors="coerce")
@@ -72,14 +78,15 @@ if uploaded_contacts is not None:
         sort_keys = [col for col in ["submission_date", "email"] if col in contacts_wix_internal.columns]
         if sort_keys:
             contacts_wix_internal.sort_values(by=sort_keys, ascending=[False, True], inplace=True)
-            contacts_wix_internal.drop_duplicates(subset="email", keep="first", inplace=True)
+            if "email" in contacts_wix_internal.columns:
+                contacts_wix_internal.drop_duplicates(subset="email", keep="first", inplace=True)
 
         st.success(f"Contacts file loaded: {uploaded_contacts.name}")
 
     except Exception as e:
         st.error(f"Error processing contacts file: {e}")
 
-# contacts_other_external (everyone on the external list(might not yet have signed up via d2i web form))
+# Process contacts_other_external
 if uploaded_external is not None:
     try:
         contacts_other_external = pd.read_csv(uploaded_external)
@@ -95,10 +102,16 @@ if uploaded_external is not None:
             contacts_other_external["email"] = contacts_other_external["email"].astype(str).str.strip()
             contacts_other_external.drop_duplicates(subset="email", keep="first", inplace=True)
             if contacts_wix_internal is not None:
-                existing_emails = contacts_wix_internal["email"].astype(str).str.strip().unique()
-                contacts_other_external = contacts_other_external[~contacts_other_external["email"].isin(existing_emails)]
+                emails_to_exclude = contacts_wix_internal["email"].astype(str).str.strip().unique()
+                contacts_other_external = contacts_other_external[~contacts_other_external["email"].isin(emails_to_exclude)]
 
-            contacts_other_external["domain"] = contacts_other_external["email"].str.extract(r"@(.+)$")[0]
+            contacts_other_external["domain"] = (
+                contacts_other_external["email"]
+                .astype(str)
+                .str.strip()
+                .str.replace(r"\\s+", "", regex=True)
+                .str.extract(r"@(.+)$")[0]
+            )
         else:
             contacts_other_external["domain"] = pd.NA
 
@@ -110,7 +123,7 @@ if uploaded_external is not None:
     except Exception as e:
         st.error(f"Error processing external contacts file: {e}")
 
-# Merge internal|d2i wix web and external|other sourced contacts
+# Merge dfs and apply steering flag
 if contacts_wix_internal is not None:
     if contacts_other_external is not None:
         shared_cols = list(set(contacts_wix_internal.columns) & set(contacts_other_external.columns))
@@ -121,28 +134,7 @@ if contacts_wix_internal is not None:
     else:
         all_contacts = contacts_wix_internal.copy()
 
-# Process n merge event attendees csv lists
-# Add the event list data (sent/invited/attended) to main data
-if uploaded_events and all_contacts is not None:
-    try:
-        for file in uploaded_events:
-            df_att = pd.read_csv(file)
-            stem = file.name.replace(".csv", "")
-            df_att.columns = ["email", f"{stem}_invited", f"{stem}_sent", f"{stem}_attended"]
-            df_att["email"] = df_att["email"].astype(str).str.strip().str.lower()
-
-            # deduplicate by email before merging (unlikely but possible)
-            df_att.drop_duplicates(subset="email", keep="first", inplace=True)
-
-            all_contacts["email"] = all_contacts["email"].astype(str).str.strip().str.lower()
-            all_contacts = pd.merge(all_contacts, df_att, on="email", how="left")
-        st.success("Event files processed and merged.")
-    except Exception as e:
-        st.error(f"Error processing event attendance files: {e}")
-
-
-# steering members (hard-coded as otherwise adds to file handling/manual upload hassles)
-# these dont change much, so fixed here for now. 
+# Apply hardcoded steering flag
 if all_contacts is not None:
     steering_emails = [
         "alistair.herbert@eastsussex.gov.uk", "b.speak@bury.gov.uk", "chloe.mcsweeney@essex.gov.uk",
@@ -160,11 +152,11 @@ if all_contacts is not None:
     def highlight_steering(row):
         return ["background-color: #d4edda" if row.get("steering_grp") == "Y" else "" for _ in row]
 
-    st.subheader("Processed Preview (Green = steeringGrpLA)")
+    st.subheader("Processed Preview (Green=steeringGrpLA)")
     preview_cols = ["submission_date", "local_authority", "role", "email", "domain", "steering_grp", "source"]
     st.dataframe(all_contacts[preview_cols].style.apply(highlight_steering, axis=1))
 
-# download button
+# Download button
 if all_contacts is not None:
     csv_data = all_contacts.to_csv(index=False).encode("utf-8")
     st.download_button(
