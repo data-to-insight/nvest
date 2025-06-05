@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>NVEST Tool Index</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/browser@0.76.0/build/style.css" />
+    <style>
+      body {
+        overflow-x: hidden;
+      }
+      .stlite-container {
+        padding: 2rem;
+        background: #f9f9f9;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-dark bg-dark mb-4">
+      <div class="container d-flex justify-content-between align-items-center">
+        <a class="navbar-brand" href="#">NVEST Tools</a>
+        <div class="d-flex align-items-center">
+          <span class="navbar-text text-white me-2">Data to Insight</span>
+          <img src="./images/d2i_logo.png" alt="D2I Logo" width="30" height="30" />
+        </div>
+      </div>
+    </nav>
+
+    <div class="container mb-5 stlite-container" id="stlite-app"></div>
+
+<script type="module">
+  import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser@0.76.0/build/stlite.js";
+
+  mount({
+    entrypoint: "🏠_Home.py",
+    files: {
+      "🏠_Home.py": `
+import streamlit as st
+st.set_page_config(page_title="Home")
+st.title("D2I NVEST Tools")
+st.markdown("Use sidebar to navigate to tools etc")
+`,
+
+      "pages/1_Process_Contacts.py": `
+import streamlit as st
+import pandas as pd
+import warnings
+from pandas.errors import SettingWithCopyWarning
+import datetime
+
+warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
+
+st.set_page_config(page_title="Process Contacts")
+st.title("Process NVEST Contacts")
+st.write("Process logic: upload contacts+steering grp files > clean+de-dup(most recent)+add columns(domain+steer_grp+web_signup) > update steering-grp flag(uses domain) ")
+
+df_contacts = None
+df_steering = None
+
+column_map = {
+    "Submission time": "submission_date",
+    "Which Local Authority do you support?": "local_authority",
+    "Your name": "name",
+    "Your job title": "role",
+    "Your email": "email",
+    "What would you most like the NVEST national forum to achieve?": "desired_outcomes",
+    "Are you aware of any local work relevant to this forum's aims?": "existing_local_work",
+    "Which CMS does your LA use?": "cms",
+    "Practice lead name": "lead_name",
+    "Practice lead email": "lead_email",
+    "Performance/BI lead name": "performance_lead",
+    "Performance/BI lead email": "performance_email",
+    "Tech support lead name": "support_lead",
+    "Tech support lead email": "support_email"
+}
+
+uploaded_contacts = st.file_uploader("Upload D2I web signup contacts CSV", type=["csv"], key="contacts_file")
+uploaded_steering = st.file_uploader("Upload steering group members CSV", type=["csv"], key="steering_file")
+
+# Process contacts file
+if uploaded_contacts is not None:
+    try:
+        df_contacts = pd.read_csv(uploaded_contacts)
+        df_contacts.dropna(axis=0, how="all", inplace=True)
+        df_contacts.dropna(axis=1, how="all", inplace=True)
+        df_contacts.rename(columns=column_map, inplace=True)
+
+        if "email" in df_contacts.columns:
+            df_contacts["domain"] = (
+                df_contacts["email"]
+                .astype(str)
+                .str.strip()
+                .str.replace(r"\s+", "", regex=True)
+                .str.extract(r"@(.+)$")[0]
+            )
+        else:
+            df_contacts["domain"] = pd.NA
+
+        if "steering_grp" not in df_contacts.columns:
+            df_contacts["steering_grp"] = "N"
+        if "web_signup" not in df_contacts.columns:
+            df_contacts["web_signup"] = "Web"
+
+        if "submission_date" in df_contacts.columns:
+            df_contacts["submission_date"] = pd.to_datetime(df_contacts["submission_date"], errors="coerce")
+
+        sort_keys = [col for col in ["submission_date", "email"] if col in df_contacts.columns]
+        if sort_keys:
+            df_contacts.sort_values(by=sort_keys, ascending=[False, True], inplace=True)
+            if "email" in df_contacts.columns:
+                df_contacts.drop_duplicates(subset="email", keep="first", inplace=True)
+
+        st.success(f"Contacts file loaded: {uploaded_contacts.name}")
+
+    except Exception as e:
+        st.error(f"Error processing contacts file: {e}")
+
+# Process steering grp file/domain list
+if uploaded_steering is not None:
+    try:
+        df_steering = pd.read_csv(uploaded_steering)
+        df_steering.dropna(axis=0, how="all", inplace=True)
+
+        if "domain" in df_steering.columns:
+            df_steering["domain"] = df_steering["domain"].astype(str).str.strip().str.lower()
+
+        st.success(f"Steering group file loaded: {uploaded_steering.name}")
+
+    except Exception as e:
+        st.error(f"Error processing steering group file: {e}")
+
+# update/flag true those on main contacts list data as steering grp if needed, and preview 
+if (
+    df_contacts is not None
+    and df_steering is not None
+    and "domain" in df_steering.columns
+    and "domain" in df_contacts.columns
+):
+    matched_domains = df_steering["domain"].dropna().unique()
+    df_contacts["steering_grp"] = df_contacts["domain"].apply(
+        lambda d: "Y" if isinstance(d, str) and d.strip().lower() in matched_domains else "N"
+    )
+
+    def highlight_steering(row):
+        return ["background-color: #d4edda" if row.get("steering_grp") == "Y" else "" for _ in row]
+
+    st.subheader("Processed Contacts Preview (Ready to download)")
+    st.dataframe(df_contacts.style.apply(highlight_steering, axis=1))
+    
+
+# download button for fixed contacts file
+# note: highlighting obv wont be availabel in csv
+if df_contacts is not None:
+    csv_data = df_contacts.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="Download Updated Contacts CSV",
+        data=csv_data,
+        file_name=f"nvest_contacts_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv",
+        mime="text/csv",
+    )
+else:
+    st.warning("Upload and process a contacts file before attempting download.")
+
+
+`
+    }
+  },
+  routingBasePath: "#",
+  document.getElementById("stlite-app"));
+</script>
+  </body>
+</html>

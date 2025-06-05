@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>NVEST Upload Tool</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Bootstrap navbar + layout -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Stlite style -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/browser@0.76.0/build/style.css" />
+  </head>
+  <body>
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-dark bg-dark mb-4">
+      <div class="container d-flex justify-content-between align-items-center">
+        <a class="navbar-brand" href="#">NVEST Tools</a>
+        <div class="d-flex align-items-center">
+          <span class="navbar-text text-white me-2">Data to Insight</span>
+          <img src="./images/d2i_logo.png" alt="D2I Logo" width="30" height="30" />
+        </div>
+      </div>
+    </nav>
+
+    <!-- Streamlit App Container -->
+    <div class="container mb-5">
+      <div id="stlite-app"></div>
+    </div>
+
+    <!-- Stlite App Script -->
+    <script type="module">
+      import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser@0.76.0/build/stlite.js";
+
+      mount(
+        `
+import streamlit as st
+import pandas as pd
+import warnings
+import re
+from pandas.errors import SettingWithCopyWarning
+
+# Suppress warnings
+warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
+
+st.title("NVEST: Upload Contacts file")
+
+# source col header strings defined by online signup form on d2i pages!
+column_map = {
+    "Submission time": "submission_date",
+    "Which Local Authority do you support?": "local_authority",
+    "Your name": "name",
+    "Your job title": "role",
+    "Your email": "email",
+    "What would you most like the NVEST national forum to achieve?": "desired_outcomes",
+    "Are you aware of any local work relevant to this forum's aims?": "existing_local_work",
+    "Which CMS does your LA use?": "cms",
+    "Practice lead name": "lead_name",
+    "Practice lead email": "lead_email",
+    "Performance/BI lead name": "performance_lead",
+    "Performance/BI lead email": "performance_email",
+    "Tech support lead name": "support_lead",
+    "Tech support lead email": "support_email"
+}
+
+uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
+if uploaded_file is not None:
+    try:
+        df = pd.read_csv(uploaded_file)
+
+        df.dropna(axis=0, how="all", inplace=True)
+        df.dropna(axis=1, how="all", inplace=True)
+
+        # Apply direct column rename
+        df.rename(columns=column_map, inplace=True)
+
+        # Add derived and default columns
+        if "email" in df.columns:
+            df["domain"] = (
+                df["email"]
+                .astype(str)
+                .str.strip()
+                .str.replace(r"\\s+", "", regex=True)
+                .str.extract(r"@(.+)$")[0]
+            )
+        else:
+            df["domain"] = pd.NA
+
+        if "steering_grp" not in df.columns:
+            df["steering_grp"] = "N"
+        if "web_signup" not in df.columns:
+            df["web_signup"] = "Y"
+
+        if "submission_date" in df.columns:
+            df["submission_date"] = pd.to_datetime(df["submission_date"], errors="coerce")
+
+        sort_keys = [col for col in ["submission_date", "email"] if col in df.columns]
+        if sort_keys:
+            df.sort_values(by=sort_keys, ascending=[False, True], inplace=True)
+            if "email" in df.columns:
+                df.drop_duplicates(subset="email", keep="first", inplace=True)
+
+        #st.success(f"Loaded and cleaned file: {uploaded_file.name}")
+        #st.write("Cleaned columns:", df.columns.tolist())
+        st.dataframe(df)
+
+    except Exception as e:
+        st.error(f"Error: {e}")
+
+`,
+        document.getElementById("stlite-app")
+      );
+    </script>
+
+
+    <!-- Regional Map Section
+    <div class="container mb-5">
+      <div class="card border-secondary">
+        <div class="card-header bg-secondary text-white">
+          <h4 class="mb-0">Regional Overview</h4>
+        </div>
+        <div class="card-body">
+          <p>NVEST Members</p>
+          <div class="ratio ratio-16x9">
+            <iframe 
+              src="https://www.google.com/maps/d/u/0/embed?mid=1gezVMm5MoIytY-q2LrPh108OrKyBGJw" 
+              width="640" height="480" allowfullscreen
+              style="border:1px solid #ccc; border-radius:6px;">
+            </iframe>
+          </div>
+        </div>
+      </div>
+    </div> -->
+
+
+  </body>
+</html>
