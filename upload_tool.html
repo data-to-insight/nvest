@@ -45,9 +45,9 @@ column_map = {
     "Tech support lead email": "support_email"
 }
 
-uploaded_contacts = st.file_uploader("Upload D2I web signup contacts CSV (PATH:>NVEST>Contacts>contacts_web_signup><file with most recent date>.csv)", type=["csv"], key="contacts_file")
-uploaded_external = st.file_uploader("Upload other external contacts CSV (PATH:>NVEST>Contacts>contacts_other_external.csv)", type=["csv"], key="external_file")
-uploaded_events = st.file_uploader("Upload ALL event CSVs (PATH:>NVEST>Contacts>events>*.csv)", accept_multiple_files=True, type=["csv"], key="multi_attendance")
+uploaded_contacts = st.file_uploader("Upload D2I web signup contacts CSV (PATH:#NVEST#Contacts#contacts_web_signup#file-with-most-recent-date.csv)", type=["csv"], key="contacts_file")
+uploaded_external = st.file_uploader("Upload other external contacts CSV (PATH:#NVEST#Contacts#contacts_other_external.csv)", type=["csv"], key="external_file")
+uploaded_events = st.file_uploader("Upload ALL event CSVs (PATH:#NVEST#Contacts#events#*.csv)", accept_multiple_files=True, type=["csv"], key="multi_attendance")
 
 # d2i web|nvest sign ups data (internal)
 if uploaded_contacts is not None:
