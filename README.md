@@ -3,21 +3,13 @@
 This repo/tools provide browser-based uploading and processing NVEST contact data alongside a (quasi)live regional overview map. 
 Uses **stlite** to run Streamlit/pyodide(in stlite) directly in browser and embeds both views via `<iframe>` containers into the html page(s) 
 
-### Process Logic:
 
-1. **Upload** contacts(from Wix downloaded) and steering group LAs files
-    - W:\Performance Improvement Team\Data to Insight\NVEST\Contacts\contacts_web_signup\<get newest date file>.csv
-    - W:\Performance Improvement Team\Data to Insight\NVEST\Contacts\contacts_other_sources\<get contacts_other_external file>.csv
-2. **Clean & de-dup** contacts (keep most recent)  
-3. **Add columns**: `domain`, `steering_grp` (default `"N"`), `web_signup` (default `"Web"`)  
-4. **Update** `steering_grp` flag where `domain` matches one in steering group list  
-
-### 🔄 Process Logic
+### Process Logic
 
 1. **Upload** two contact CSVs:
-   - 📥 *Wix signups:*  
+   - *Wix signups:*  
      `NVEST/Contacts/contacts_web_signup/<latest>.csv`
-   - 📥 *Other external contacts:*  
+   - *Other external contacts:*  
      `NVEST/Contacts/contacts_other_sources/<external>.csv`
 2. **Clean + de-duplicate** each:
    - Drop blanks, rename columns
@@ -29,8 +21,8 @@ Uses **stlite** to run Streamlit/pyodide(in stlite) directly in browser and embe
    - `domain` (from email addr)  
    - `steering_grp` (default: `"N"`)  
    - `source`: `"Web"` for Wix, `"External"` for others
-5. **Merge datasets** (on shared columns only)
-6. **Flag steering group** by hardcoded email match (repo needs to stay private, as emails now in code not file)
+5. **Merge datasets** (on shared/common columns only)
+6. **Flag steering group** by hard-coded email match (repo needs to stay private, as those emails now in code not upload via file)
 7. **Preview flagged rows**, & option of timestamped CSV download
 
 ### Data Cleaning Logic:
@@ -38,12 +30,11 @@ Uses **stlite** to run Streamlit/pyodide(in stlite) directly in browser and embe
 - Drop empty rows/cols  
 - Rename columns via `column_map`  
 - Extract `domain` from `email`  
-- Add missing cols: `steering_grp = 'N'`, `web_signup = 'Web|External'`  
-- Parse `submission_date` as datetime  
-- Sort by date, de-dup by `email` (keep latest)  
-- Clean & lower `domain` in steering list  
-- Flag contacts `steering_grp = 'Y'` if domain match  
-- Highlight flagged rows  
+- Add missing cols: `steering_grp = 'N'`, `web_signup = 'Web|External'` (can be extended) 
+- Parse `submission_date` as datetime  (empty dates get today())
+- Sort by date, de-dup by `email` (basic cleaning + lower) (keep latest. Web sign-ups take priority)  
+- Flag contacts `steering_grp = 'Y'` if email match  
+- Highlight flagged steering_grp rows in preview for ref 
 - Enable timestamped CSV download
 
 
@@ -57,23 +48,33 @@ Uses **stlite** to run Streamlit/pyodide(in stlite) directly in browser and embe
 - Flag contacts as steering group members based on domain matching (so is currently whole LA based!)  
 - Download(option) for processed contacts file  
 - View members regional boundaries on map
-- Runs **fully in-browser** (no server or Python runtime needed)
+- Runs fully in-browser (stlite/Pyodide - same as d2i SEND/AA tools)
 
 ---
 
 ## Structure
 
+## Structure
+
 - `index.html`:  
-  The main interface with a two-column layout using Bootstrap.  
+  The main interface with two-column layout  
   - Left: `upload_tool.html` (iframe)  
   - Right: Embedded Google Map (iframe)
 
 - `upload_tool.html`:  
-  HTML file embedding stlite-powered Streamlit app:
-  - Upload and clean data
-  - Match domains
-  - Highlight steering group records(from additional upload file of domains)
-  - Offer downloadable CSV
+  HTML file embedding a stlite-powered Streamlit app:
+  - Upload and clean three CSV input types:
+    - D2I web signups (internal contacts)
+    - Other external contact lists (those not yet registered via d2i site form)
+    - One or more event attendance CSVs (labelled by date)
+  - Auto-normalise emails, remove junk cols, de-duplicate
+  - Cross-check and merge internal and external contacts (by email)
+  - Process event files:
+    - Add `*_invited`, `*_sent`, `*_attended` cols for <<each>> date-labelled events CSV
+  - Apply steering group highlighting (this only for ref in the preview - it's not in the csv download)
+  - Reorder output fields for Excel usability
+  - Gives downloadable, merged and cleaned CSV output
+
 
 - `images/`:  
   Img assets (e.g., `d2i_logo.png`)
