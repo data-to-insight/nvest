@@ -51,6 +51,9 @@ uploaded_external = st.file_uploader("Upload other external contacts CSV (PATH:#
 uploaded_events = st.file_uploader("Upload ALL event CSVs (PATH:#NVEST#Contacts#events#*.csv)", accept_multiple_files=True, type=["csv"], key="multi_attendance")
 
 
+
+
+
 # d2i web|nvest sign ups data (internal)
 if uploaded_contacts is not None:
     try:
@@ -75,6 +78,10 @@ if uploaded_contacts is not None:
         if sort_keys:
             contacts_wix_internal.sort_values(by=sort_keys, ascending=[False, True], inplace=True)
             contacts_wix_internal.drop_duplicates(subset="email", keep="first", inplace=True)
+
+        # strip timezone info
+        contacts_wix_internal["submission_date"] = pd.to_datetime(contacts_wix_internal["submission_date"], errors="coerce").dt.tz_localize(None)
+
 
         st.success(f"Contacts file loaded: {uploaded_contacts.name}")
 
@@ -109,10 +116,18 @@ if uploaded_external is not None:
         contacts_other_external["steering_grp"] = "N"
         contacts_other_external["source"] = "External"
 
+        # strip timezone info
+        contacts_other_external["submission_date"] = pd.to_datetime(contacts_other_external["submission_date"], errors="coerce").dt.tz_localize(None)
+
+
         st.success(f"External contacts file loaded: {uploaded_external.name}")
 
     except Exception as e:
         st.error(f"Error processing external contacts file: {e}")
+
+
+
+
 
 # Merge internal|d2i wix web and external|other sourced contacts
 if contacts_wix_internal is not None:
