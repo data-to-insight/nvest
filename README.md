@@ -1,24 +1,44 @@
 # NVEST Tools(Contacts processing) & Regional Members Overview
 
 This repo/tools provide browser-based uploading and processing NVEST contact data alongside a (quasi)live regional overview map. 
-It uses **stlite** to run Streamlit directly in browser and embeds both views via `<iframe>` containers.
+Uses **stlite** to run Streamlit/pyodide(in stlite) directly in browser and embeds both views via `<iframe>` containers into the html page(s) 
 
 ### Process Logic:
 
 1. **Upload** contacts(from Wix downloaded) and steering group LAs files
     - W:\Performance Improvement Team\Data to Insight\NVEST\Contacts\contacts_web_signup\<get newest date file>.csv
-    - W:\Performance Improvement Team\Data to Insight\NVEST\Contacts\steering_group_members.csv
+    - W:\Performance Improvement Team\Data to Insight\NVEST\Contacts\contacts_other_sources\<get contacts_other_external file>.csv
 2. **Clean & de-dup** contacts (keep most recent)  
 3. **Add columns**: `domain`, `steering_grp` (default `"N"`), `web_signup` (default `"Web"`)  
 4. **Update** `steering_grp` flag where `domain` matches one in steering group list  
 
+### 🔄 Process Logic
+
+1. **Upload** two contact CSVs:
+   - 📥 *Wix signups:*  
+     `NVEST/Contacts/contacts_web_signup/<latest>.csv`
+   - 📥 *Other external contacts:*  
+     `NVEST/Contacts/contacts_other_sources/<external>.csv`
+2. **Clean + de-duplicate** each:
+   - Drop blanks, rename columns
+   - Parse `submission_date` (use today if missing)
+   - Keep latest by `email`
+3. **Remove overlaps** compare but remove from contacts_external, keep the web_signups record if exists (match on clean `email`). 
+   - We need to remove before merge, as might not have submission date/time on external records - so determining most recent record not possible; so we assume web sign up is more recent as members directed to this input route after having shown interest via another route, e.g. workshop.       
+4. **Add fields**:
+   - `domain` (from email addr)  
+   - `steering_grp` (default: `"N"`)  
+   - `source`: `"Web"` for Wix, `"External"` for others
+5. **Merge datasets** (on shared columns only)
+6. **Flag steering group** by hardcoded email match (repo needs to stay private, as emails now in code not file)
+7. **Preview flagged rows**, & option of timestamped CSV download
 
 ### Data Cleaning Logic:
 
 - Drop empty rows/cols  
 - Rename columns via `column_map`  
 - Extract `domain` from `email`  
-- Add missing cols: `steering_grp = 'N'`, `web_signup = 'Web'`  
+- Add missing cols: `steering_grp = 'N'`, `web_signup = 'Web|External'`  
 - Parse `submission_date` as datetime  
 - Sort by date, de-dup by `email` (keep latest)  
 - Clean & lower `domain` in steering list  
@@ -74,5 +94,6 @@ It uses **stlite** to run Streamlit directly in browser and embeds both views vi
 Built to run in **GitHub Pages** and other static hosting providers. Ensure:
 
 - avoid direct browser refresh on subpages (e.g., `/upload_tool.html`) unless served (e.g., via iframe or root-relative path) - i've not added # or 404 handling
+- Test : python3 -m http.server 8501
 
 ---

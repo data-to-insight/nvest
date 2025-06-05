@@ -22,11 +22,10 @@ warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 
 st.set_page_config(page_title="Process Contacts")
 st.title("Process NVEST Contacts")
-#st.write("See repo README for processing logic")
 st.markdown("[See repo README for processing logic →](https://github.com/data-to-insight/nvest/blob/main/README.md)")
 
-df_contacts = None
-df_steering = None
+contacts_wix_internal = None
+contacts_other_external = None
 
 column_map = {
     "Submission time": "submission_date",
@@ -46,85 +45,120 @@ column_map = {
 }
 
 uploaded_contacts = st.file_uploader("Upload D2I web signup contacts CSV", type=["csv"], key="contacts_file")
-uploaded_steering = st.file_uploader("Upload steering group members CSV", type=["csv"], key="steering_file")
+uploaded_external = st.file_uploader("Upload other external contacts CSV", type=["csv"], key="external_file")
 
-# Process contacts file
+# Process contacts_wix_internal
 if uploaded_contacts is not None:
     try:
-        df_contacts = pd.read_csv(uploaded_contacts)
-        df_contacts.dropna(axis=0, how="all", inplace=True)
-        df_contacts.dropna(axis=1, how="all", inplace=True)
-        df_contacts.rename(columns=column_map, inplace=True)
+        contacts_wix_internal = pd.read_csv(uploaded_contacts)
+        contacts_wix_internal.dropna(axis=0, how="all", inplace=True)
+        contacts_wix_internal.dropna(axis=1, how="all", inplace=True)
+        contacts_wix_internal.rename(columns=column_map, inplace=True)
 
-        if "email" in df_contacts.columns:
-            df_contacts["domain"] = (
-                df_contacts["email"]
+        if "email" in contacts_wix_internal.columns:
+            contacts_wix_internal["domain"] = (
+                contacts_wix_internal["email"]
                 .astype(str)
                 .str.strip()
-                .str.replace(r"\s+", "", regex=True)
+                .str.replace(r"\\s+", "", regex=True)
                 .str.extract(r"@(.+)$")[0]
             )
         else:
-            df_contacts["domain"] = pd.NA
+            contacts_wix_internal["domain"] = pd.NA
 
-        if "steering_grp" not in df_contacts.columns:
-            df_contacts["steering_grp"] = "N"
-        if "web_signup" not in df_contacts.columns:
-            df_contacts["web_signup"] = "Web"
+        if "steering_grp" not in contacts_wix_internal.columns:
+            contacts_wix_internal["steering_grp"] = "N"
+        if "source" not in contacts_wix_internal.columns:
+            contacts_wix_internal["source"] = "Web"
 
-        if "submission_date" in df_contacts.columns:
-            df_contacts["submission_date"] = pd.to_datetime(df_contacts["submission_date"], errors="coerce")
+        if "submission_date" in contacts_wix_internal.columns:
+            contacts_wix_internal["submission_date"] = pd.to_datetime(contacts_wix_internal["submission_date"], errors="coerce")
 
-        sort_keys = [col for col in ["submission_date", "email"] if col in df_contacts.columns]
+        sort_keys = [col for col in ["submission_date", "email"] if col in contacts_wix_internal.columns]
         if sort_keys:
-            df_contacts.sort_values(by=sort_keys, ascending=[False, True], inplace=True)
-            if "email" in df_contacts.columns:
-                df_contacts.drop_duplicates(subset="email", keep="first", inplace=True)
+            contacts_wix_internal.sort_values(by=sort_keys, ascending=[False, True], inplace=True)
+            if "email" in contacts_wix_internal.columns:
+                contacts_wix_internal.drop_duplicates(subset="email", keep="first", inplace=True)
 
         st.success(f"Contacts file loaded: {uploaded_contacts.name}")
 
     except Exception as e:
         st.error(f"Error processing contacts file: {e}")
 
-# Process steering grp file/domain list
-if uploaded_steering is not None:
+# Process contacts_other_external
+if uploaded_external is not None:
     try:
-        df_steering = pd.read_csv(uploaded_steering)
-        df_steering.dropna(axis=0, how="all", inplace=True)
+        contacts_other_external = pd.read_csv(uploaded_external)
+        contacts_other_external.dropna(axis=0, how="all", inplace=True)
+        contacts_other_external.dropna(axis=1, how="all", inplace=True)
+        contacts_other_external.rename(columns=column_map, inplace=True)
 
-        if "domain" in df_steering.columns:
-            df_steering["domain"] = df_steering["domain"].astype(str).str.strip().str.lower()
+        if "submission_date" in contacts_other_external.columns:
+            contacts_other_external["submission_date"] = pd.to_datetime(contacts_other_external["submission_date"], errors="coerce")
+            contacts_other_external["submission_date"].fillna(pd.Timestamp.now(), inplace=True)
 
-        st.success(f"Steering group file loaded: {uploaded_steering.name}")
+        if "email" in contacts_other_external.columns:
+            contacts_other_external["email"] = contacts_other_external["email"].astype(str).str.strip()
+            contacts_other_external.drop_duplicates(subset="email", keep="first", inplace=True)
+            if contacts_wix_internal is not None:
+                emails_to_exclude = contacts_wix_internal["email"].astype(str).str.strip().unique()
+                contacts_other_external = contacts_other_external[~contacts_other_external["email"].isin(emails_to_exclude)]
+
+            contacts_other_external["domain"] = (
+                contacts_other_external["email"]
+                .astype(str)
+                .str.strip()
+                .str.replace(r"\\s+", "", regex=True)
+                .str.extract(r"@(.+)$")[0]
+            )
+        else:
+            contacts_other_external["domain"] = pd.NA
+
+        contacts_other_external["steering_grp"] = "N"
+        contacts_other_external["source"] = "External"
+
+        st.success(f"External contacts file loaded: {uploaded_external.name}")
 
     except Exception as e:
-        st.error(f"Error processing steering group file: {e}")
+        st.error(f"Error processing external contacts file: {e}")
 
-# update/flag true those on main contacts list data as steering grp if needed, and preview 
-if (
-    df_contacts is not None
-    and df_steering is not None
-    and "domain" in df_steering.columns
-    and "domain" in df_contacts.columns
-):
-    matched_domains = df_steering["domain"].dropna().unique()
-    df_contacts["steering_grp"] = df_contacts["domain"].apply(
-        lambda d: "Y" if isinstance(d, str) and d.strip().lower() in matched_domains else "N"
+# Merge dfs and apply steering flag
+all_contacts = None
+if contacts_wix_internal is not None:
+    if contacts_other_external is not None:
+        shared_cols = list(set(contacts_wix_internal.columns) & set(contacts_other_external.columns))
+        all_contacts = pd.concat([
+            contacts_wix_internal[shared_cols],
+            contacts_other_external[shared_cols]
+        ], ignore_index=True)
+    else:
+        all_contacts = contacts_wix_internal.copy()
+
+# Apply hardcoded steering flag
+if all_contacts is not None:
+    steering_emails = [
+        "alistair.herbert@eastsussex.gov.uk", "b.speak@bury.gov.uk", "chloe.mcsweeney@essex.gov.uk",
+        "david.wilson@walsall.gov.uk", "emma.johnson@eastsussex.gov.uk", "helen.ruddick@stockton.gov.uk",
+        "idacohen@purplemoonconsultancy.com", "jon.doyle@redcar-cleveland.gov.uk",
+        "kate.townsend@brighton-hove.gov.uk", "laurallewellyn@southend.gov.uk",
+        "Paul.Jackson@southglos.gov.uk", "pippa@cheviotsolutions.com",
+        "samia.baig@slough.gov.uk", "tim.wallder@merton.gov.uk"
+    ]
+
+    all_contacts["steering_grp"] = all_contacts["email"].apply(
+        lambda e: "Y" if isinstance(e, str) and e.strip().lower() in [s.lower() for s in steering_emails] else "N"
     )
 
     def highlight_steering(row):
         return ["background-color: #d4edda" if row.get("steering_grp") == "Y" else "" for _ in row]
 
     st.subheader("Processed Preview (Green=steeringGrpLA)")
+    preview_cols = ["submission_date", "local_authority", "role", "email", "domain", "steering_grp", "source"]
+    st.dataframe(all_contacts[preview_cols].style.apply(highlight_steering, axis=1))
 
-    # preview reduced col set for ref (download retains all cols)
-    preview_cols = ["submission_date", "local_authority", "role", "email", "domain", "steering_grp", "web_signup"]
-    st.dataframe(df_contacts[preview_cols].style.apply(highlight_steering, axis=1))
-
-    
-# download button for processed contacts
-if df_contacts is not None:
-    csv_data = df_contacts.to_csv(index=False).encode("utf-8")
+# Download button
+if all_contacts is not None:
+    csv_data = all_contacts.to_csv(index=False).encode("utf-8")
     st.download_button(
         label="Download Contacts CSV",
         data=csv_data,
@@ -132,7 +166,7 @@ if df_contacts is not None:
         mime="text/csv",
     )
 else:
-    st.warning("Upload and process a contacts file before attempting download.")
+    st.warning("Upload and process at least the primary contacts file before download.")
         `,
         document.getElementById("stlite-app")
       );
