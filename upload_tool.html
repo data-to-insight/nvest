@@ -164,6 +164,11 @@ if all_contacts is not None:
     preview_cols = ["submission_date", "local_authority", "role", "email", "domain", "steering_grp", "source"]
     st.dataframe(all_contacts[preview_cols].style.apply(highlight_steering, axis=1))
 
+    # need to ensure output order to make sense in Excel later
+    first_cols = ["submission_date", "email", "name", "role", "local_authority", "cms"]
+    remaining_cols = [col for col in all_contacts.columns if col not in first_cols]
+    all_contacts = all_contacts[first_cols + remaining_cols]
+
 # download button
 if all_contacts is not None:
     csv_data = all_contacts.to_csv(index=False).encode("utf-8")
