@@ -97,8 +97,10 @@ if uploaded_external is not None:
             contacts_other_external["email"] = contacts_other_external["email"].astype(str).str.strip()
             contacts_other_external.drop_duplicates(subset="email", keep="first", inplace=True)
             if contacts_wix_internal is not None:
-                existing_emails = contacts_wix_internal["email"].astype(str).str.strip().unique()
+                existing_emails = contacts_wix_internal["email"].astype(str).str.strip().str.lower().unique()
+                contacts_other_external["email"] = contacts_other_external["email"].astype(str).str.strip().str.lower()
                 contacts_other_external = contacts_other_external[~contacts_other_external["email"].isin(existing_emails)]
+
 
             contacts_other_external["domain"] = contacts_other_external["email"].str.extract(r"@(.+)$")[0]
         else:
@@ -120,6 +122,12 @@ if contacts_wix_internal is not None:
             contacts_wix_internal[shared_cols],
             contacts_other_external[shared_cols]
         ], ignore_index=True)
+
+        # overkill, as we dedup elesewhere, but ensures any late-stage collisions are removed in merged
+        all_contacts["email"] = all_contacts["email"].astype(str).str.strip().str.lower()
+        all_contacts.sort_values(by="submission_date", ascending=False, inplace=True)
+        all_contacts.drop_duplicates(subset="email", keep="first", inplace=True)
+
     else:
         all_contacts = contacts_wix_internal.copy()
 
