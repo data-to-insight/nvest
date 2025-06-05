@@ -46,8 +46,21 @@ column_map = {
 }
 
 uploaded_contacts = st.file_uploader("Upload D2I web signup contacts CSV (PATH:#NVEST#Contacts#contacts_web_signup#file-with-most-recent-date.csv)", type=["csv"], key="contacts_file")
+if uploaded_contacts is not None:
+    contacts_wix_internal = pd.read_csv(uploaded_contacts)
+    contacts_wix_internal = contacts_wix_internal.loc[:, ~contacts_wix_internal.columns.str.contains('^Unnamed|^Column1')]
+
 uploaded_external = st.file_uploader("Upload other external contacts CSV (PATH:#NVEST#Contacts#contacts_other_external.csv)", type=["csv"], key="external_file")
+if uploaded_external is not None:
+    contacts_other_external = pd.read_csv(uploaded_external)
+    contacts_other_external = contacts_other_external.loc[:, ~contacts_other_external.columns.str.contains('^Unnamed|^Column1')]
+
 uploaded_events = st.file_uploader("Upload ALL event CSVs (PATH:#NVEST#Contacts#events#*.csv)", accept_multiple_files=True, type=["csv"], key="multi_attendance")
+if uploaded_events:
+    for file in uploaded_events:
+        df_att = pd.read_csv(file)
+        df_att = df_att.loc[:, ~df_att.columns.str.contains('^Unnamed|^Column1')]
+
 
 # d2i web|nvest sign ups data (internal)
 if uploaded_contacts is not None:
@@ -165,7 +178,8 @@ if all_contacts is not None:
     st.dataframe(all_contacts[preview_cols].style.apply(highlight_steering, axis=1))
 
     # need to ensure output order to make sense in Excel later
-    first_cols = ["submission_date", "email", "name", "role", "local_authority", "cms"]
+    desired_first_cols = ["submission_date", "email", "name", "role", "local_authority", "cms"]
+    first_cols = [col for col in desired_first_cols if col in all_contacts.columns]
     remaining_cols = [col for col in all_contacts.columns if col not in first_cols]
     all_contacts = all_contacts[first_cols + remaining_cols]
 
