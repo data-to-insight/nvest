@@ -144,6 +144,17 @@ if contacts_wix_internal is not None:
     else:
         all_contacts = contacts_wix_internal.copy()
 
+    # Column reordering
+    core_order = [
+        "submission_date", "name", "local_authority", "email", "role", "cms",
+        "steering_grp", "desired_outcomes", "existing_local_work",
+        "lead_name", "lead_email", "performance_lead", "performance_email",
+        "support_lead", "support_email", "domain", "source"
+    ]
+    # enforce col core_order if exists
+    core_order_present = [col for col in core_order if col in all_contacts.columns]
+    remaining_cols = [col for col in all_contacts.columns if col not in core_order_present]
+    all_contacts = all_contacts[core_order_present + remaining_cols]
 
 # Process n merge event attendees csv lists
 # Add the event list data (sent/invited/attended) to main data
