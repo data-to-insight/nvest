@@ -54,6 +54,12 @@ uploaded_events = st.file_uploader("Upload ALL event CSVs (PATH: NVEST/Contacts/
 
 # d2i web|nvest sign ups data (internal)
 if uploaded_contacts is not None:
+
+    # making the assumption that if re-uploading the main input data, that we're starting afresh
+    # avoids possible <appending to> any session stored data
+    contacts_other_external = None
+    all_contacts = None
+
     try:
         contacts_wix_internal = pd.read_csv(uploaded_contacts)
         contacts_wix_internal.dropna(axis=0, how="all", inplace=True)
@@ -144,6 +150,12 @@ if contacts_wix_internal is not None:
     else:
         all_contacts = contacts_wix_internal.copy()
 
+    # Standardise text case
+    for col in ["name", "local_authority", "role"]:
+        if col in all_contacts.columns:
+            all_contacts[col] = all_contacts[col].astype(str).str.strip().str.title()
+
+
     # Column reordering
     core_order = [
         "submission_date", "name", "local_authority", "email", "role", "cms",
@@ -151,10 +163,14 @@ if contacts_wix_internal is not None:
         "lead_name", "lead_email", "performance_lead", "performance_email",
         "support_lead", "support_email", "domain", "source"
     ]
-    # enforce col core_order if exists
     core_order_present = [col for col in core_order if col in all_contacts.columns]
     remaining_cols = [col for col in all_contacts.columns if col not in core_order_present]
     all_contacts = all_contacts[core_order_present + remaining_cols]
+
+    # Sort by name (asc) if present
+    if "name" in all_contacts.columns:
+        all_contacts.sort_values(by="name", ascending=True, inplace=True)
+
 
 # Process n merge event attendees csv lists
 # Add the event list data (sent/invited/attended) to main data
