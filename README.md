@@ -70,6 +70,19 @@ Now that the contacts have been processed (i.e. cleaned, de-duped, other data ad
 
 The master contact sheet is NOT where contacts data should be edited/updated. The data sources are where any changes/edits should be made. The reason is that we refresh all the data within the contacts workbook each time we run this process. So the source data and not the contacts workbook is our single data source for the actual contacts related data. IF wanting to store person/individual specific notes, or additional data against specific records, this can be done using a user defined lookup page in which email address, and those related additional columns/data is stored against them. 
 
+## NVEST Events files
+
+The NVEST events invites/attended are recorded to assist event planning and checking we've correctly contacted all those that have registered their interest. When a new event is planned, the full list of current Contacts emails should be copied from the master contact sheet overview (column `email`), and pasted afresh into the same named column in the next free `event1, 2, 3,... file`. Do not change the file name, or file type here as it will break the onward data flow. These are csv files so no formatting can be stored in the file. Instead, in the main/master contacts sheet.... the Event1, 2, 3 heading CAN be changed to reflect the date or another decriptor for each event. 
+
+**Key take-aways for managing events files**
+
+- Events files cant be renamed
+- Events files are csv so not for annotating with colour formatting
+- Additional columns CAN be added into Events files - but those will NOT come through into the master contacts
+- New individual emails can be added to Event file at any point (but those emails/contacts should already exist in Wix OR contacts_other_external.csv)
+
+
+
 ### Process Logic
 
 1. **Upload** CSVs:
@@ -80,35 +93,24 @@ The master contact sheet is NOT where contacts data should be edited/updated. Th
    - *NVEST events attendees:*  
      `NVEST/Contacts/3 - events/<upload <ALL> the files in this folder>.csv`
 2. **Clean + de-duplicate** each:
-   - Drop blanks, rename columns
-   - Parse `submission_date` (use today if missing)
+   - Drop blanks, rename/standardise columns 
+   - Parse `submission_date` (empty dates get today())
+   - Normalise/lower `email` 
    - Keep latest record by `email` (web sign up record takes priority if duplicates identified)
-   - We need to remove dups before merge, as might not have submission date/time on external records - so determining most recent record not possible; so we assume web sign up is more recent as members directed to this input route after having shown interest via another route, e.g. workshop.       
+   - We need to remove dups before merge, as might not have submission date/time on external records - so determining most recent record not possible; so we assume web sign up is more recent as members directed to this input route after having shown interest via another route, e.g. workshop.
+   - Ensure column order matches requested output order 
+   - Apply basic text normalisation on agreed columns (currently: titlecase on `name`(not yet effective for such as McGregor), `role`, `local_authority`) 
+   - Sort on `name` (asc)       
 4. **Added fields**:
-   - `domain` (captureed from email address - as this will be more reliable|consistent than inputted LA name text)  
+   - `domain` (captured from email address - as this will be more reliable|consistent than inputted LA name text)  
    - `steering_grp` (default: `"N"`)  
    - `source`: `"Web"` for Wix, `"External"` for others (these labels explain where the contact has originated)
+
 5. **Merge contacts datasets**
    - Bring together Wix contacts, and those coming in from other sources(e.g. via email, or requested)
    - Should a contact be added into the other sources, but later register via the web site the de-dup process will retain the web site registered record
 6. **Flag steering group** uses hard-coded email match (repo needs to stay private, as those emails now in code not upload via file)
 7. **Preview rows**, & option of timestamped CSV download
-
-### Data Cleaning Logic:
-
-- Drop empty rows/cols  
-- Rename columns via `column_map` 
-- normalise/lower `email` 
-- Extract `domain` from `email`  
-- Add additional cols: `steering_grp = 'N'`, `web_signup = 'Web|External'` (can be extended) 
-- Parse `submission_date` as datetime  (empty dates get today())
-- Sort by date, de-dup by `email` (keep latest. Web sign-ups take priority)  
-- Flag contacts `steering_grp = 'Y'` if email match with hard-coded email list
-- Ensure column order matches requested output order
-- Apply basic text normalisation (title names on `name`, `role`, `local_authority`) 
-- Sort on `name` (asc) 
-- Highlight flagged steering_grp rows in preview window for easy ref pre-download 
-- Enable timestamped CSV download
 
 
 ---
