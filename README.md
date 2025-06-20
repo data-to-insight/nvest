@@ -15,52 +15,53 @@ tech_stack:
 - csv
 ---
 
+
 # NVEST Tools(Contacts processing) & Regional Members Overview
 
-An in-progress collection of tools towards NVEST related processing.
+In-progress collection of tools towards NVEST related processing.
 
-Available via : [NVEST Tools](https://data-to-insight.github.io/nvest/)
+Tool(s) available via : [NVEST Tools](https://data-to-insight.github.io/nvest/)
 
 
 ## Contacts processing tool
 
 A browser-based process for handling NVEST contacts and events data alongside a (quasi)live regional overview map. 
 Uses **stlite** to run Streamlit/pyodide(in stlite) directly in browser and embeds both views via `<iframe>` containers into the html page(s). 
-
+---
 
 ## Instructions
 
-### PRE-processing steps
+### Step1: Pre-processing steps
 
-Output data will only be up to date if the source data is. Confirm/do the following before running the tool.
+The master contacts worksheet. will only be up to date if the source data is. Confirm/do the following before running the contacts processing tool.
 
-  1. Download the entire Wix NVEST EOI form submissions. The NVEST contacts, and the export of these, should be accessed only via [Forms and Submissions](https://manage.wix.com/dashboard/af6cb463-8e72-4034-8f73-3641ad5abc9d/wix-forms-and-payments). Download this data into : 
-    - `NVEST/Contacts/1 - contacts_web_signup/dddmmmyyy.csv`
-  2. If you have any contacts that have been sent seperately, they would either already be on or now added to the list in 
-    - `NVEST/Contacts/2 - contacts_other_sources/contacts_other_external.csv` 
+  1. Download the entire Wix NVEST EOI form submissions. The NVEST contacts, download should be accessed only via [Forms and Submissions](https://manage.wix.com/dashboard/af6cb463-8e72-4034-8f73-3641ad5abc9d/wix-forms-and-payments). Download this data into : 
+    - `NVEST/Contacts/NVEST_Contacts_Master_Processing/dddmmmyyy.csv`
+  2. If you have any contacts that have been sent seperately(i.e they might not have yet registered via Wix form), they should be added to the list in 
+    - `NVEST/Contacts/NVEST_Contacts_Master_Processing/contacts_other_external.csv` 
   3. NVEST event/workshop invitations and attendance data is stored on event sheets within 
-    - `NVEST/Contacts/3 - events/event1.csv + event2.csv + event3.csv + .....` 
+    - `NVEST/Contacts/NVEST_Contacts_Master_Processing/Events/event1.csv + event2.csv + event3.csv + .....` 
 
-### Tool Processing steps
+### Step2: Tool Processing steps
 
 Using [NVEST Contacts Processing Tool](https://data-to-insight.github.io/nvest/)
 
-**There are 4 buttons**
+**There are 4 buttons/actions**
   - Three for uploading the needed source contacts & events data(in this order)
 
-    1. Single file: `NVEST/Contacts/NVEST_Contacts_Master_Processing/<wix_nvest_downloaded_contacts_file>.csv`
+    1. Single file: `NVEST/Contacts/NVEST_Contacts_Master_Processing/<wix_nvest_downloaded_contacts>.csv`
 
     2. Single file: `NVEST/Contacts/NVEST_Contacts_Master_Processing/contacts_other_external.csv`   
 
     3. **ALL**/Multiple-files in: `NVEST/Contacts/NVEST_Contacts_Master_Processing/Events/*.csv`
 
-  - A single download of the resultant processed contacts data
+  - One to download the resultant processed contacts data
 
-    - Data downloads as .csv file but MUST be saved/**overwrite** `NVEST\Contacts\4 - contacts_processed\processed_contacts_refreshed.csv` 
+    - Data downloads as .csv file but MUST be saved/**overwrite** `NVEST/Contacts/NVEST_Contacts_Master_Processing/processed_contacts_refreshed.csv` 
 
-***The processing occurs immeadiately that the 3rd upload source files are added. There is nothing to press or do in order to initiate the actual processing and the download is available instantly.***
+***The processing occurs immeadiately that the 3rd upload source files are added. There is nothing to press or do in order to initiate the actual processing and the download file is available instantly after the above 3 steps are completed.***
 
-### Update working contacts sheet
+### Step3: Update working contacts sheet
 
 Now that the contacts have been processed (i.e. cleaned, de-duped, other data added, steering grp flagged etc) and downloaded into `NVEST\Contacts\4 - contacts_processed\processed_contacts_refreshed.csv`. We are going to refresh the contacts sheet with this data. It's a simple 1 button update. 
 
@@ -71,13 +72,17 @@ Now that the contacts have been processed (i.e. cleaned, de-duped, other data ad
   That's it. Whether you notice any changes or not, all the data in the contacts (and events) page(s) is now updated and current. 
 
 
-## Important
 
-The master contact sheet is NOT where contacts data should be edited/updated. The data sources are where any changes/edits should be made. The reason is that we refresh all the data within the contacts workbook each time we run this process. So the source data and not the contacts workbook is our single data source for the actual contacts related data. IF wanting to store person/individual specific notes, or additional data against specific records, this can be done using a user defined lookup page in which email address, and those related additional columns/data is stored against them. 
+---
+
+## Important further information
+
+**NVEST_Contacts_Master.xls**
+The master contact sheet itself is NOT where contacts data should be edited/updated. The data sources within `\NVEST\Contacts\NVEST_Contacts_Master_Processing\` are where any changes/edits should be made. The reason is that we refresh all the data within the contacts workbook each time we run this process. So the source data and not the contacts workbook is our single data source for the actual contacts related data. IF wanting to store person/individual specific notes, or additional data against specific records, this can be done using a user defined lookup page in which email address, and those related additional columns/data is stored against them. 
 
 ## NVEST Events files
 
-The NVEST events invites/attended are recorded to assist event planning and checking we've correctly contacted all those that have registered their interest. When a new event is planned, the full list of current Contacts emails should be copied from the master contact sheet overview (column `email`), and pasted afresh into the same named column in the next free `event1, 2, 3,... file`. Do not change the file name, or file type here as it will break the onward data flow. These are csv files so no formatting can be stored in the file. Instead, in the main/master contacts sheet.... the Event1, 2, 3 heading CAN be changed to reflect the date or another decriptor for each event. 
+The NVEST events invites/attended are recorded to assist event planning and checking we've correctly contacted all those that have registered their interest. When a new event is planned, the full list of current Contacts emails should be copied from the master contact sheet overview (column `email`), and pasted afresh into into the next free `event1, 2, 3,... file`. **Do not change the file name**, or file type here as it will break the onward data flow. These are csv files so no formatting can be stored in the file. Instead, if desired such formatting can be added in the NVEST_Contacts_Master.xls.... in this file Event1, 2, 3 heading CAN then be changed to reflect the date or another decriptor for each event. To be clear.... col headers can only be modified in the NVEST_Contacts_Master.xls file. 
 
 **Key take-aways for managing events files**
 
@@ -88,15 +93,17 @@ The NVEST events invites/attended are recorded to assist event planning and chec
 
 
 
+## Related Tech Notes
+
 ### Process Logic
 
 1. **Upload** CSVs:
    - *Wix signups:*  
-     `NVEST/Contacts/1 - contacts_web_signup/<latest date file>.csv`
+     `NVEST/Contacts/NVEST_Contacts_Master_Processing/<latest date file>.csv`
    - *Other external contacts:*  
-     `NVEST/Contacts/2 - contacts_other_sources/contacts_other_external.csv`
+     `NVEST/Contacts/NVEST_Contacts_Master_Processing/contacts_other_external.csv`
    - *NVEST events attendees:*  
-     `NVEST/Contacts/3 - events/<upload <ALL> the files in this folder>.csv`
+     `NVEST/Contacts/NVEST_Contacts_Master_Processing/Events/<upload <ALL> files in this folder>.csv`
 2. **Clean + de-duplicate** each:
    - Drop blanks, rename/standardise columns 
    - Parse `submission_date` (empty dates get today())
