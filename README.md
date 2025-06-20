@@ -46,11 +46,16 @@ Output data will only be up to date if the source data is. Confirm/do the follow
 Using [NVEST Contacts Processing Tool](https://data-to-insight.github.io/nvest/)
 
 **There are 4 buttons**
-  - Three for uploading the needed source contacts/events data(in this order)
-    1. Single file: `NVEST/Contacts/1-contacts_web_signup/<file-with-most-recent-date>.csv` 
-    2. Single file: `NVEST/Contacts/2-contacts_other_sources/contacts_other_external.csv` 
-    3. **ALL**/Multiple-files in: `NVEST/Contacts/3-events/*.csv` 
+  - Three for uploading the needed source contacts & events data(in this order)
+
+    1. Single file: `NVEST/Contacts/NVEST_Contacts_Master_Processing/<wix_nvest_downloaded_contacts_file>.csv`
+
+    2. Single file: `NVEST/Contacts/NVEST_Contacts_Master_Processing/contacts_other_external.csv`   
+
+    3. **ALL**/Multiple-files in: `NVEST/Contacts/NVEST_Contacts_Master_Processing/Events/*.csv`
+
   - A single download of the resultant processed contacts data
+
     - Data downloads as .csv file but MUST be saved/**overwrite** `NVEST\Contacts\4 - contacts_processed\processed_contacts_refreshed.csv` 
 
 ***The processing occurs immeadiately that the 3rd upload source files are added. There is nothing to press or do in order to initiate the actual processing and the download is available instantly.***
@@ -60,8 +65,8 @@ Using [NVEST Contacts Processing Tool](https://data-to-insight.github.io/nvest/)
 Now that the contacts have been processed (i.e. cleaned, de-duped, other data added, steering grp flagged etc) and downloaded into `NVEST\Contacts\4 - contacts_processed\processed_contacts_refreshed.csv`. We are going to refresh the contacts sheet with this data. It's a simple 1 button update. 
 
   - Open the main Contacts Excel sheet/file on your PC. This is usually located: `NVEST\Contacts\` 
-  - From the ribbon, navigate to the 'Data' tab
-  - Click 'Refresh All' from the 'Queries and Connections' block on the ribbon
+  - From the ribbon, navigate to the 'Data' tab 
+  - Click 'Refresh All' from the 'Queries and Connections' block on the ribbon 
 
   That's it. Whether you notice any changes or not, all the data in the contacts (and events) page(s) is now updated and current. 
 
