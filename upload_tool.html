@@ -179,6 +179,12 @@ if uploaded_events and all_contacts is not None:
         for file in uploaded_events:
             df_att = pd.read_csv(file)
             stem = file.name.replace(".csv", "")
+
+            # debug
+            print("Columns detected:", df_att.shape[1])
+            print("First few rows:")
+            print(df_att.head())
+
             df_att.columns = ["email", f"{stem}_invited", f"{stem}_sent", f"{stem}_attended"]
             df_att["email"] = df_att["email"].astype(str).str.strip().str.lower()
 
